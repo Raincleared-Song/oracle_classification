@@ -1,16 +1,13 @@
 import os
+import yaml
+import torch
 import pickle
 import shutil
-
-import torch
-import yaml
-from torch.nn import functional as F
-from PIL import Image
 import numpy as np
 from tqdm import tqdm
-from time import strftime
+from PIL import Image
+from torch.nn import functional as F
 
-device = "cuda" if torch.cuda.is_available() else 'cpu'
 
 def save_checkpoint(state, is_best=False, filename='checkpoint.pth.tar', model_best='model_best.pth.tar'):
     print(f"saving checkpoint to {filename}")
@@ -32,7 +29,6 @@ def accuracy(output, target, topk=(1,), return_pred=False):
     """
     with torch.no_grad():
         maxk = max(topk)
-        batch_size = target.size(0)
 
         _, pred = output.topk(maxk, 1, True, True)
         pred = pred.t()
@@ -48,9 +44,9 @@ def accuracy(output, target, topk=(1,), return_pred=False):
 
 
 def euclidean_dist(x, y):
-    '''
+    """
     Compute euclidean distance between two tensors
-    '''
+    """
     # x: N x D
     # y: M x D
     n = x.size(0)
@@ -64,16 +60,19 @@ def euclidean_dist(x, y):
     return torch.pow(x - y, 2).sum(2)
 
 
-def cosine_dist(x, y): # 效果不好
+def cosine_dist(x, y):  # 效果不好
     return -torch.matmul(F.normalize(x), F.normalize(y).T)
+
 
 def get_last_part(path):
     return path.strip("/").split("/")[-1]
 
+
 def turn_img_white(img):
-    if len(img[img>250]) < img.size * 0.5:
+    if len(img[img > 250]) < img.size * 0.5:
         img = 255 - img
     return img
+
 
 def preprocess(img):
     # cut images white edges.
@@ -113,6 +112,7 @@ def preprocess(img):
     new_img[vert_start:vert_start + vert_len, hori_start:hori_start + hori_len] = img[up:down, left:right]
     return Image.fromarray(new_img)
 
+
 class Counter:
     def __init__(self):
         self.cnt = 0
@@ -133,7 +133,7 @@ class Counter:
             return 0
         return sum(self.items)/self.cnt
 
-    def threshold_cnt(self, threshold = 0.9):
+    def threshold_cnt(self, threshold=0.9):
         return sum([int(item > threshold) for item in self.items])
 
 
@@ -143,7 +143,7 @@ def get_feats(model, dataloader, device, cache_path=None):
     if cache_path is not None:
         cache_path = "./cache" + "/" + cache_path + ".pkl"
     if cache_path is not None and os.path.exists(cache_path):
-        feats, y2ind = pickle.load(open(cache_path,'rb'))
+        feats, y2ind = pickle.load(open(cache_path, 'rb'))
         return feats.to(device), y2ind
     y2feats = {}
     model.eval()
@@ -158,9 +158,9 @@ def get_feats(model, dataloader, device, cache_path=None):
                     y2feats[label] = []
                 y2feats[label].append(proto)
     ys = sorted(list(y2feats.keys()))
-    y2ind = {} # label 未必完全连续，存在没有任何样本的label，y2ind将labels映射到紧密的区间
+    y2ind = {}  # label 未必完全连续，存在没有任何样本的label，y2ind将labels映射到紧密的区间
     for ind, y in enumerate(list(y2feats.keys())):
-        y2ind[y] = ind #note: y2ind未必包含所有的y
+        y2ind[y] = ind  # note: y2ind未必包含所有的y
     feats = torch.empty((len(y2ind), list(y2feats.values())[0][0].shape[0]), device=device, dtype=torch.float)
     for y in ys:
         protos = y2feats[y]
@@ -168,6 +168,3 @@ def get_feats(model, dataloader, device, cache_path=None):
     if cache_path is not None:
         pickle.dump((feats.cpu(), y2ind), open(cache_path, 'wb'))
     return feats, y2ind
-
-def daystr():
-    return strftime("%m%d")

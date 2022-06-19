@@ -163,7 +163,11 @@ def tensor_to_img(img: torch.Tensor, shape: tuple, mean: list, std: list) -> Ima
     return Image.fromarray(img, mode=('L' if shape[0] == 1 else 'RGB'))
 
 
-def naive_transform(image: Image.Image, image_res: int, pad_color: int = 0):
+src_to_pad_color = [255, 0]
+
+
+def naive_transform(image: Image.Image, extra: dict, image_res: int):
+    pad_color = src_to_pad_color[extra['src']]
     image = resize_pad_image(image, (image_res, image_res), do_trans=False, pad_color=pad_color)
     mean, std = {
         128: ([0.5601, 0.5598, 0.5596], [0.4064, 0.4065, 0.4066]),
@@ -175,15 +179,16 @@ def naive_transform(image: Image.Image, image_res: int, pad_color: int = 0):
     return transform(image)
 
 
-def naive_transform_fn(image_res: int, pad_color: int = 0):
-    def res_fn(image: Image.Image):
-        return naive_transform(image, image_res, pad_color)
+def naive_transform_fn(image_res: int):
+    def res_fn(image: Image.Image, extra: dict):
+        return naive_transform(image, extra, image_res)
     return res_fn
 
 
-def change_transform(image: Image.Image, image_res: int, pad_color: int = 0, image_mask_ratio: float = 0.25,
+def change_transform(image: Image.Image, extra: dict, image_res: int, image_mask_ratio: float = 0.25,
                      image_noise_ratio: float = 0.25, erosion_pob: float = 0.3,
                      dilation_pob: float = 0.3, do_rotate: bool = False):
+    pad_color = src_to_pad_color[extra['src']]
     pad_mask_img = resize_pad_image(image, (image_res, image_res), do_trans=True,
                                     pad_color=pad_color, mask_ratio=image_mask_ratio,
                                     noise_ratio=image_noise_ratio, do_rotate=do_rotate)
@@ -200,10 +205,10 @@ def change_transform(image: Image.Image, image_res: int, pad_color: int = 0, ima
     return transform(pad_mask_img)
 
 
-def change_transform_fn(image_res: int, pad_color: int = 0, image_mask_ratio: float = 0.25,
+def change_transform_fn(image_res: int, image_mask_ratio: float = 0.25,
                         image_noise_ratio: float = 0.25, erosion_pob: float = 0.3,
                         dilation_pob: float = 0.3, do_rotate: bool = False):
-    def res_fn(image: Image.Image):
-        return change_transform(image, image_res, pad_color, image_mask_ratio, image_noise_ratio,
+    def res_fn(image: Image.Image, extra: dict):
+        return change_transform(image, extra, image_res, image_mask_ratio, image_noise_ratio,
                                 erosion_pob, dilation_pob, do_rotate)
     return res_fn

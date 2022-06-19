@@ -14,7 +14,7 @@ model_names = sorted(name for name in models.__dict__
 
 parser = argparse.ArgumentParser(description='PyTorch SimCLR')
 parser.add_argument('-data', metavar='DIR', help='path to dataset',
-                    default='/data/private/songchenyang/hanzi_filter/handa/**/characters/*.png')
+                    default='orcal/oracle_classification_combine.json')
 parser.add_argument('-dataset-name', default='oracle',
                     help='dataset name', choices=['stl10', 'cifar10', 'oracle'])
 parser.add_argument('-a', '--arch', metavar='ARCH', default='vit', choices=model_names,
@@ -54,6 +54,7 @@ parser.add_argument('--n_views', default=2, type=int, metavar='N',
 parser.add_argument('--gpu-index', default=0, type=int, help='Gpu index.')
 
 parser.add_argument('--batch_sizex', default=96, type=int, help='batch_size.')
+parser.add_argument('--log_dir', '-ld', default='./runs/pretrain_simclr_none', type=str, help='checkpoint dir.')
 
 
 def main():
